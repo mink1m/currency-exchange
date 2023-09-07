@@ -12,12 +12,28 @@ def getExchange(toCurrency, fromCurrency) -> float:
     # toCurrency: str, fromCurrency: str
     # both must be "XXX", an abbreviation of a currency
     #   i.e. USD or CNY
-    url = "https://openexchangerates.org/api/latest.json?app_id=" + _myKey + "&base=" + fromCurrency
+    url = "https://openexchangerates.org/api/latest.json?app_id=" + _myKey + "&base=USD"
     response = json.loads(requests.request("GET", url).text)
-    # base of currency is the us dollar
-    # usd = response["rates"]["USD"]    gets usd
-    return response["rates"][toCurrency]
+
+    if fromCurrency == "USD":
+        # USD to other
+        return response["rates"][toCurrency]
+    elif toCurrency == "USD":
+        # other to USD
+        return (1 / response["rates"][fromCurrency])
+    else:
+        """ 
+        other to other
+        eg: euro to gbp = 1EUR = 0.86 GBP
+        - usd to euro = 1USD = 0.93 EUR
+        - usd to gbp = 1USD = .8 GBP
+        - calculate euro to gbp: .8 / .93 = .86
+        """
+        return response["rates"][toCurrency] / response["rates"][fromCurrency]
     
+
+    # EURO TO POUND 
+    # 
 
 def checkRequestLimit() -> bool:
     url = "https://openexchangerates.org/api/usage.json?app_id=" + _myKey
@@ -144,7 +160,7 @@ def getInfo():
         baseC = request.form["base"]
         targetC = request.form["target"]
         converted = getExchange(targetC, baseC)
-        rStr = f"{quant:.0f} {baseC} is equivalent to {(converted * quant):.2f} {targetC}"
+        rStr = f"{quant:.0f} {baseC} is equivalent to {round((converted * quant), 2)} {targetC}"
         return render_template("index.html", currency = dropdown(), returnString = rStr)
     else:
         return render_template("index.html", currency = dropdown(), returnString = "We have run out of API requests. Try again soon!")
